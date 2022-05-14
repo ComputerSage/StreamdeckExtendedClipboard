@@ -1,0 +1,47 @@
+{
+  "Actions": [
+    {
+      "Icon": "Images/clipboard",
+      "Name": "Clipboard",
+      "States": [
+        {
+          "Image": "Images/clipboard"
+        }
+      ],
+      "Tooltip": "Store anything from the clipboard",
+      "SupportedInMultiActions": true,
+      "UUID": "com.computersage.clipboard.clipboard"
+    },
+    {
+      "Icon": "Images/clipboard",
+      "Name": "Clear Clipboard",
+      "States": [
+        {
+          "Image": "Images/clearClipboard"
+        }
+      ],
+      "Tooltip": "Clear all clipboards",
+      "SupportedInMultiActions": true,
+      "UUID": "com.computersage.clipboard.clearclipboard"
+    }
+  ],
+  "SDKVersion": 2,
+  "Author": "ComputerSage",
+  "CodePath": "com.computersage.clipboard",
+  "Description": "Many coll stuff that needs c#.",
+  "Name": "Extended Clipboard",
+  "Icon": "Images/categoryIcon",
+  "Category": "Computer Sage",
+  "CategoryIcon": "Images/categoryIcon",
+  "URL": "https://www.elgato.com/gaming/stream-deck",
+  "Version": "1.0.2",
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
+  ],
+  "Software": {
+    "MinimumVersion": "4.1"
+  }
+}

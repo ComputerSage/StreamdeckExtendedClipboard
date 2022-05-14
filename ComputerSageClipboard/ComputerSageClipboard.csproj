@@ -1,0 +1,108 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk" ToolsVersion="15.0">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+	<UseWPF>true</UseWPF>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <AssemblyName>com.computersage.clipboard</AssemblyName>
+    <AssemblyVersion>2.0.1</AssemblyVersion>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishSingleFile>false</PublishSingleFile>
+    <RuntimeIdentifier>win10-x64</RuntimeIdentifier>
+    <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
+    <Authors>ComputerSage</Authors>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageProjectUrl></PackageProjectUrl>
+    <RepositoryUrl></RepositoryUrl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64'">
+    <PublishReadyToRun>false</PublishReadyToRun>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Fleck" Version="1.1.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="StreamDeck-Tools" Version="3.2.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Images\*.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+	<Content Include="PropertyInspector\*.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="manifest.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="PropertyInspector\css\caret.svg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="PropertyInspector\css\check.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="PropertyInspector\css\check.svg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="PropertyInspector\css\elg_calendar.svg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="PropertyInspector\css\elg_calendar_inv.svg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="PropertyInspector\css\g_d8d8d8.svg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="PropertyInspector\css\rcheck.svg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="PropertyInspector\css\sdpi.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Include="PropertyInspector\js\pi.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Images\" />
+  </ItemGroup>
+  <Target Name="PostBuild" BeforeTargets="PostBuildEvent">
+    <GetAssemblyIdentity AssemblyFiles="$(TargetPath)">
+      <Output TaskParameter="Assemblies" ItemName="TargetAssemblyInfo" />
+    </GetAssemblyIdentity>
+    <CreateProperty Value="%(TargetAssemblyInfo.Version)">
+      <Output TaskParameter="Value" PropertyName="TargetVersion" />
+    </CreateProperty>
+  </Target>
+  <Target Name="PostBuildDebug" AfterTargets="PostBuild" Condition="'$(ConfigurationName)'=='DEBUG'">
+    <Exec Command="powershell.exe -NonInteractive -ExecutionPolicy Unrestricted -Command &quot;. '$(SolutionDir)UpdateManifest.ps1' -targetDir '$(TargetDir)' -targetVersion '$(TargetVersion)' -runtimeIdentifier '$(RuntimeIdentifier)'&quot;" />
+    <Exec Command="powershell.exe -NonInteractive -ExecutionPolicy Unrestricted -Command &quot;. '$(SolutionDir)PostBuildDebug.ps1' -targetName '$(TargetName)' -outputDir '$(ProjectDir)$(OutDir)'&quot;" />
+  </Target>
+  <Target Name="PostPublish" AfterTargets="Publish" Condition="'$(ConfigurationName)'=='RELEASE'">
+    <Exec Command="powershell.exe -NonInteractive -ExecutionPolicy Unrestricted -Command &quot;. '$(SolutionDir)UpdateManifest.ps1' -targetDir '$(TargetDir)publish\' -targetVersion '$(TargetVersion)' -runtimeIdentifier '$(RuntimeIdentifier)'&quot;" />
+    <Exec Command="powershell.exe -NonInteractive -ExecutionPolicy Unrestricted -Command &quot;. '$(SolutionDir)PostPublishRelease.ps1' -targetName '$(TargetName)' -outputDir '$(ProjectDir)$(OutDir)' -runtimeIdentifier '$(RuntimeIdentifier)'&quot;" />
+  </Target>
+</Project>
