@@ -10,13 +10,13 @@ namespace ComputerSageClipboard
         {
             try
             {
-                Logger.Instance.LogMessage(TracingLevel.INFO, "Application Started");
+                Logger.Instance.LogMessage("Application Started");
                 FileManager.Initialize();
                 SDWrapper.Run(args);
             }
             catch (Exception e)
             {
-                Logger.Instance.LogMessage(TracingLevel.ERROR, e.Message);
+                Logger.Instance.LogError(e);
             }
         }
     }

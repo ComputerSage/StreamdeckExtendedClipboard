@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.Threading;
 using System.Windows;
 using ComputerSageClipboard.Plugin.Globals;
 using ComputerSageClipboard.Plugin.Keys;
@@ -10,7 +12,19 @@ namespace ComputerSageClipboard.Helpers
     {
         private readonly static List<ClipboardKey> keys = new List<ClipboardKey>();
 
-        public static void AddKey(ClipboardKey key) => keys.Add(key);
+        public static bool RemoveKey(ClipboardKey key) => keys.Remove(key);
+
+        public static bool AddKey(ClipboardKey key) {
+            bool contains = keys.Contains(key);
+            if (!contains)
+            {
+                var aux = keys.Find(x => x.ClipboardId == key.ClipboardId);
+                keys.Add(key);
+
+                return aux != null || string.IsNullOrEmpty(key.ClipboardId?.Trim());
+            }
+            return false;
+        }
 
         public static void ClearAllKeys()
         {
@@ -40,7 +54,7 @@ namespace ComputerSageClipboard.Helpers
             {
                 ClipboardDataType.Text => "Text\nData",
                 ClipboardDataType.Image => "Image\nData",
-                ClipboardDataType.Audio => "Audio\nData",
+                //ClipboardDataType.Audio => "Audio\nData",
                 ClipboardDataType.File => "File\nData",
                 _ => "Unknown\nData",
             };
@@ -50,18 +64,38 @@ namespace ComputerSageClipboard.Helpers
         {
             if (Clipboard.ContainsText()) return ClipboardDataType.Text;
             if (Clipboard.ContainsImage()) return ClipboardDataType.Image;
-            if (Clipboard.ContainsAudio()) return ClipboardDataType.Audio;
+            //if (Clipboard.ContainsAudio()) return ClipboardDataType.Audio;
             if (Clipboard.ContainsFileDropList()) return ClipboardDataType.File;
             return ClipboardDataType.Unknown;
+        }
+
+        public static void HandleWindowsClipboard(Action action)
+        {
+            Thread thread = new Thread(() => action());
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
         }
 
         #region SetClipboardData
         public static void SetClipboardData(ClipboardDataType type, object storedData)
         {
-            if (type == ClipboardDataType.Text) Clipboard.SetDataObject((string)storedData);
+            if (type == ClipboardDataType.Text) SetClipboardText(storedData);
             else if (type == ClipboardDataType.File) SetClipboardFileList(storedData);
             else if (type == ClipboardDataType.Image)
                 Clipboard.SetImage(BitmapHelper.FromBase64((string)storedData));
+        }
+
+        private static void SetClipboardText(object storedData)
+        {
+            try
+            {
+                Clipboard.SetText((string)storedData);
+            }
+            catch
+            {
+                Clipboard.SetDataObject((string)storedData);
+            }
         }
 
         private static void SetClipboardFileList(object storedData)

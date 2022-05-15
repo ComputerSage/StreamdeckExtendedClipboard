@@ -1,19 +1,23 @@
 {
   "Actions": [
     {
-      "Icon": "Images/clipboard",
+      "Icon": "Images/clipboardMenu",
       "Name": "Clipboard",
       "States": [
         {
-          "Image": "Images/clipboard"
+          "Image": "Images/clipboard",
+          "TitleColor": "#FFFFFF",
+          "TitleAlignment": "middle",
+          "FontSize": "11"
         }
       ],
       "Tooltip": "Store anything from the clipboard",
       "SupportedInMultiActions": true,
-      "UUID": "com.computersage.clipboard.clipboard"
+      "UUID": "com.computersage.clipboard.clipboard",
+      "PropertyInspectorPath": "PropertyInspector/Clipboard.html"
     },
     {
-      "Icon": "Images/clipboard",
+      "Icon": "Images/clearClipboardMenu",
       "Name": "Clear Clipboard",
       "States": [
         {
@@ -22,7 +26,8 @@
       ],
       "Tooltip": "Clear all clipboards",
       "SupportedInMultiActions": true,
-      "UUID": "com.computersage.clipboard.clearclipboard"
+      "UUID": "com.computersage.clipboard.clearclipboard",
+      "PropertyInspectorPath": "PropertyInspector/Clear.html"
     }
   ],
   "SDKVersion": 2,

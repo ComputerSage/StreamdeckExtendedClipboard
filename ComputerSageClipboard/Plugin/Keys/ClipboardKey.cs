@@ -24,16 +24,35 @@ namespace ComputerSageClipboard.Plugin.Keys
 
         protected object clipboardData;
 
+        public string ClipboardId { get => settings.ClipboardId; }
+
+        private double SetDataTimeout
+        {
+            get
+            {
+                bool hasData = !string.IsNullOrEmpty(settings.setDataTimeout?.Trim());
+                return hasData ? double.Parse(settings.setDataTimeout) : 600;
+            }
+        }
+
+        private int ClearDataTimeout
+        {
+            get
+            {
+                bool hasData = !string.IsNullOrEmpty(settings.clearDataTimeout?.Trim());
+                return hasData ? int.Parse(settings.clearDataTimeout) : 5;
+            }
+        }
+
         public ClipboardKey(ISDConnection connection, InitialPayload payload) : base(connection, payload)
         {
-            setClipboarTimer = new Timer() { Interval = 600 };
+            setClipboarTimer = new Timer() { Interval = SetDataTimeout };
             clearClipboarTimer = new Timer() { Interval = 1000 };
 
             setClipboarTimer.Elapsed += SetClipboardData;
             clearClipboarTimer.Elapsed += ClearClipboard;
-            ClipboardHelper.AddKey(this);
 
-            if (string.IsNullOrEmpty(settings.ClipboardId?.Trim())) {
+            if (ClipboardHelper.AddKey(this)) {
                 settings.ClipboardId = Guid.NewGuid().ToString();
                 settings.DataType = (int) ClipboardDataType.NONE;
                 SaveSettings();
@@ -47,7 +66,7 @@ namespace ComputerSageClipboard.Plugin.Keys
 
             if (!payload.IsInMultiAction)
             {
-                warning = 6;
+                warning = ClearDataTimeout + 1;
                 setClipboarTimer.Start();
             }
         }
@@ -71,36 +90,8 @@ namespace ComputerSageClipboard.Plugin.Keys
 
             if (settings.DataType != (int)ClipboardDataType.NONE)
             {
-                string keyTitle = ClipboardHelper.GetKeyTitle(settings.DataType);
-
                 clipboardData = FileManager.GetData(settings.ClipboardId);
-                if (clipboardData != null)
-                {
-                    var stringData = (string)clipboardData;
-
-                    if (settings.DataType == (int)ClipboardDataType.Text)
-                    {
-                        SetImageAsync(BitmapHelper.GetTextIcon());
-                        keyTitle = ClipboardHelper.GetKeyTitle(stringData);
-                    }
-                    else if (settings.DataType == (int)ClipboardDataType.File)
-                    {
-                        SetImageAsync(BitmapHelper.GetFileIcon());
-                        keyTitle = ClipboardHelper.GetTitleFromFileList(stringData);
-                    }
-                    else if (settings.DataType == (int)ClipboardDataType.Image)
-                    {
-                        SetImageAsync(BitmapHelper.Bas64Header + stringData);
-                        keyTitle = "";
-                    }
-                    else if (settings.DataType == (int)ClipboardDataType.Audio)
-                    {
-                        SetImageAsync(BitmapHelper.GetAudioIcon());
-                        keyTitle = "Audio";
-                    }
-
-                    SetTitleAsync(keyTitle);
-                }
+                if (clipboardData != null) SetTitleFromData();
                 else ClearClipboard();
             }
             else SetTitleAsync(EMPTY);
@@ -110,11 +101,20 @@ namespace ComputerSageClipboard.Plugin.Keys
 
         public override void Dispose()
         {
+            ClipboardHelper.RemoveKey(this);
+
             setClipboarTimer.Elapsed -= SetClipboardData;
             clearClipboarTimer.Elapsed -= ClearClipboard;
 
             setClipboarTimer.Stop();
             clearClipboarTimer.Stop();
+        }
+
+        public override void ReceivedSettings(ReceivedSettingsPayload payload)
+        {
+            base.ReceivedSettings(payload);
+
+            setClipboarTimer.Interval = SetDataTimeout;
         }
         #endregion
 
@@ -138,6 +138,7 @@ namespace ComputerSageClipboard.Plugin.Keys
 
             clearClipboarTimer.Stop();
             SetTitle(EMPTY);
+
             stage = KeyStage.ClearClipboard;
         }
         #endregion
@@ -149,7 +150,7 @@ namespace ComputerSageClipboard.Plugin.Keys
             if (settings.DataType == (int) ClipboardDataType.NONE || clipboardData == null)
                 SetTitle(EMPTY);
             else {
-                HandleWindowsClipboard(() => {
+                ClipboardHelper.HandleWindowsClipboard(() => {
                     ClipboardHelper.SetClipboardData((ClipboardDataType)settings.DataType, clipboardData);
                     WindowsInput.SendKeyboardInput(WindowsInput.ScanCodeShort.KEY_V, true);
                 });
@@ -159,9 +160,14 @@ namespace ComputerSageClipboard.Plugin.Keys
         //stage == KeyStage.SetClipboardData
         private async void SetClipboard()
         {
+            if (!IsTypeSupported()) {
+                SetTitleFromData();
+                return;
+            }
+
             settings.DataType = (int) auxType;
 
-            HandleWindowsClipboard(() => {
+            ClipboardHelper.HandleWindowsClipboard(() => {
                 GetDataFromClipboard();
                 FileManager.SaveData(settings.ClipboardId, clipboardData);
                 SetTitle(GetTitleFromClipboard());
@@ -177,18 +183,11 @@ namespace ComputerSageClipboard.Plugin.Keys
             settings.DataType = (int) ClipboardDataType.NONE;
             clipboardData = null;
 
+            SetImageAsync(BitmapHelper.GetDefaultIcon());
             SetTitle(EMPTY);
             SaveSettings();
         }
         #endregion
-
-        private void HandleWindowsClipboard(Action action)
-        {
-            System.Threading.Thread thread = new System.Threading.Thread(() => action());
-            thread.SetApartmentState(System.Threading.ApartmentState.STA);
-            thread.Start();
-            thread.Join();
-        }
 
         #region GetTitleFromClipboard
         private string GetTitleFromClipboard()
@@ -211,13 +210,42 @@ namespace ComputerSageClipboard.Plugin.Keys
                 return "";
             }
 
-            if (Clipboard.ContainsAudio())
+            if (!IsTypeSupported())
             {
-                SetImageAsync(BitmapHelper.GetAudioIcon());
-                return "Audio";
+                SetImageAsync(BitmapHelper.GetDefaultIcon());
+                return "Unsupported\nType";
             }
 
             return EMPTY;
+        }
+
+        private void SetTitleFromData()
+        {
+            var stringData = (string)clipboardData;
+            var keyTitle = ClipboardHelper.GetKeyTitle(settings.DataType);
+
+            if (settings.DataType == (int)ClipboardDataType.Text)
+            {
+                SetImageAsync(BitmapHelper.GetTextIcon());
+                keyTitle = ClipboardHelper.GetKeyTitle(stringData);
+            }
+            else if (settings.DataType == (int)ClipboardDataType.File)
+            {
+                SetImageAsync(BitmapHelper.GetFileIcon());
+                keyTitle = ClipboardHelper.GetTitleFromFileList(stringData);
+            }
+            else if (settings.DataType == (int)ClipboardDataType.Image)
+            {
+                SetImageAsync(BitmapHelper.Bas64Header + stringData);
+                keyTitle = "";
+            }
+            //else if (settings.DataType == (int)ClipboardDataType.Audio)
+            //{
+            //    SetImageAsync(BitmapHelper.GetAudioIcon());
+            //    keyTitle = "Audio";
+            //}
+
+            SetTitleAsync(keyTitle);
         }
         #endregion
 
@@ -240,6 +268,16 @@ namespace ComputerSageClipboard.Plugin.Keys
 
             clipboardData = paths.Trim();
         }
+
+        private bool IsTypeSupported()
+        {
+            return auxType switch
+            {
+                ClipboardDataType.Audio => false,
+                ClipboardDataType.Unknown => false,
+                _ => true
+            };
+        }
         #endregion
     }
 
@@ -249,5 +287,11 @@ namespace ComputerSageClipboard.Plugin.Keys
 
         [JsonProperty("dataType")]
         public int DataType { get; set; }
+
+        [JsonProperty("setDataTimeout")]
+        public string setDataTimeout { get; set; }
+
+        [JsonProperty("clearDataTimeout")]
+        public string clearDataTimeout { get; set; }
     }
 }

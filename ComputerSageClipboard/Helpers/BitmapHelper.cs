@@ -10,7 +10,10 @@ namespace ComputerSageClipboard.Helpers
     public class BitmapHelper
     {
         public static readonly string Bas64Header = "data:image/jpeg;base64,";
-        private static string fileIconB64 = null, textIconB64 = null, audioIconB64 = null;
+        private static string fileIconB64 = null,
+            textIconB64 = null,
+            audioIconB64 = null,
+            defaultIconB64 = null;
 
         public static string GetBase64(BitmapSource source, bool header = false)
         {
@@ -103,6 +106,13 @@ namespace ComputerSageClipboard.Helpers
             if (audioIconB64 != null) return audioIconB64;
             audioIconB64 = GetBase64(LoadIcon("audioIcon"), true);
             return audioIconB64;
+        }
+
+        public static string GetDefaultIcon()
+        {
+            if (defaultIconB64 != null) return defaultIconB64;
+            defaultIconB64 = GetBase64(LoadIcon("clipboard"), true);
+            return defaultIconB64;
         }
 
         private static Bitmap LoadIcon(string icon)
